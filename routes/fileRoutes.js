@@ -14,11 +14,11 @@ router.post(
 
 router.post(
   "/upload-multiple",
-  multer(multerConfig).array("files", 5), 
+  multer(multerConfig).array("files", 5),
   fileController.uploadMultipleFiles
 );
 
-
-router.get("/",  fileController.getFiles);
+router.get("/getallflies", fileController.getAllFiles);
+router.get("/:id", fileController.getFile);
 
 module.exports = router;

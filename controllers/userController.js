@@ -1,17 +1,47 @@
 const bcrypt = require("bcrypt");
 const jwtUtils = require("../utils/jwtUtils");
-const nodemailer = require("nodemailer");
 const User = require("../models/user");
 
+const {
+  transporter,
+  successfulRegister,
+} = require("../utils/nodemailerConfig");
 
-// Nodemailer configuration
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: "rishabhprajapati411@gmail.com",
-    pass: "shwrqvxxlpbiuprb",
-  },
-});
+require("dotenv").config();
+const path = require("path");
+
+exports.registerUser = async (req, res) => {
+  const email = req.body.email;
+  const password = req.body.password;
+  try {
+    if (!email) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const user = new User({
+      email: email,
+      password: hashedPassword,
+    });
+    const result = await user.save();
+
+    const mailOptions = successfulRegister(result);
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.log("Error sending email:", error);
+      } else {
+        console.log("Email sent:", info.response);
+      }
+    });
+
+    res.status(201).json({ message: "User registered successfully" });
+    console.log(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error registering user" });
+  }
+};
 
 exports.loginUser = async (req, res) => {
   const email = req.body.email;
@@ -29,52 +59,14 @@ exports.loginUser = async (req, res) => {
     }
 
     const token = jwtUtils.generateToken(user.email);
-    res.json({ token });
+    res
+      .status(200)
+      .json({ message: "User Logged In", user: user.email, token });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error during login" });
   }
 };
 
-
-exports.registerUser = async (req, res) => {
-  const email = req.body.email;
-  const password = req.body.password
-  try {
-    if (!email) {
-      return res.status(400).json({ message: "Email already exists" });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 12);
-    const user = new User({
-      email: email,
-      password: hashedPassword,
-    });
-    const result = await user.save();
-
-    // Send email
-    const mailOptions = {
-      from: "rishabhprajapati411@gmail.com",
-      to: "rishabhprajapati53@gmail.com",
-      subject: "Account Registered",
-      text: `Your account has been registered successfully.`,
-      
-    };
-
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.log("Error sending email:", error);
-      } else {
-        console.log("Email sent:", info.response);
-      }
-    });
-
-    res.status(201).json({ message: "User registered successfully" });
-    console.log(result);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error registering user" });
-  }
-};
 
 
