@@ -9,6 +9,7 @@ const {
 
 require("dotenv").config();
 const path = require("path");
+const sharp = require("sharp");
 
 const File = require("../models/file");
 const User = require("../models/user");
@@ -85,6 +86,25 @@ exports.uploadFile = async (req, res) => {
 
     // Save the user document to the database
     await user.save();
+
+    // If the uploaded file is an image, resize it using sharp
+    if (req.file.mimetype.startsWith("image")) {
+      const inputFilePath = `uploads/image/${req.file.filename}`;
+      const outputFilePath = `uploads/resized/${req.file.filename}`;
+      const target = {
+        width: 200,
+        height: 200,
+        fit: sharp.fit.cover,
+        background: { r: 255, g: 255, b: 255, alpha: 0.5 },
+      }; // Specify the desired width
+
+      await sharp(inputFilePath).resize({ target }).toFile(outputFilePath);
+
+      // Update the file's resized path in the database
+      newFile.resizedFilePath = outputFilePath;
+      await newFile.save();
+    }
+
     // res.json({ fileLink: `${req.headers.origin}/file/${file.id}` });
     const mailOptions = SIngleMailOptions(newFile);
 
@@ -96,7 +116,7 @@ exports.uploadFile = async (req, res) => {
       }
       // Return a success message with the file and user details
       return res.status(200).json({
-        message: "File stored successfully",
+        message: "File stored and resized successfully",
         user: user.email,
         fileLink: `/file/${req.file.filename}`,
       });
