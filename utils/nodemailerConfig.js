@@ -56,12 +56,16 @@ exports.MultipleMailOptions = (filenames) => {
   };
 };
 
-exports.successfulRegister = (user) => {
+exports.successfulRegister = (user, verificationLink) => {
   return {
-    from: process.env.EMAIL,
-    to: `${user.email}`,
-    subject: "Account Registered",
-    text: `Your account has been registered successfully.`,
+    from: process.env.EMAIL, // Sender address
+    to: user.email, // Receiver address
+    subject: "Verify your email address", // Subject line
+    html: `<p>Hi ${user.email},</p>
+                <p>Thank you for registering on our website. To complete your registration, please click on the link below to verify your email address.</p>
+              <p><a href="${verificationLink}">Verify your email</a></p>
+              <p>If you did not register on our website, please ignore this email.</p>
+              <p>Best regards,</p>
+              <p>The Website Team</p>`,
   };
 };
-
