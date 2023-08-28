@@ -25,23 +25,21 @@ try {
   console.log("Error creating transporter:", error);
 }
 
-exports.SIngleMailOptions = (file) => {
+exports.singleMailOptions = (file, user) => {
   return {
-    from: process.env.EMAIL,
-    to: "idivyansh22@gmail.com",
-    subject: "File Uploaded",
-    html: `<p>Your file has been uploaded successfully, <a href="/file/${file.filename}">Click here to Download file.</a></p>`,
-
-    // attachments: [
-    //   {
-    //     path: path.join(__dirname, "..", file.path), //this is important don't change
-    //     contentType: "image/jpg",
-    //   },
-    // ],
+    from: process.env.EMAIL, // Sender address
+    to: user.email, // Receiver address
+    subject: "Your file has been uploaded", // Subject line
+    html: `<p>Hi ${user.email},</p>
+<p>Thank you for uploading your file on our website. You can access your file using the link below.</p>
+<p><a href="${file.filePath}">Download your file</a></p>
+<p>If you have any questions or feedback, please reply to this email.</p>
+<p>Best regards,</p>
+<p>The Website Team</p>`, // HTML body
   };
 };
 
-exports.MultipleMailOptions = (filenames) => {
+exports.MultipleMailOptions = (file, filenames, user) => {
   return {
     from: process.env.EMAIL,
     to: "idivyansh22@gmail.com",

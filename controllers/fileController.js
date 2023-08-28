@@ -3,56 +3,80 @@ const multerConfig = require("../utils/multerConfig");
  
 const {
   transporter,
-  SIngleMailOptions,
+  singleMailOptions,
   MultipleMailOptions,
 } = require("../utils/nodemailerConfig");
 
 require("dotenv").config();
 const path = require("path");
-const sharp = require("sharp");
+// const { sharpFilter } = require("../utils/multerConfig");
 
+const sharp = require("sharp");
 const File = require("../models/file");
 const User = require("../models/user");
+const user = require("../models/user");
 
-exports.getAllFiles = async (req, res) => {
-  // Retrieve file paths from the database
-  const files = await File.find();
-  return res.status(200).json(files);
+exports.getAllFiles = async (req, res, next) => {
+  const currentPage = req.query.page || 1;
+  const perPage = 2;
+  try {
+    const totalItems = await File.find().countDocuments();
+    const files = await File.find()
+      .populate("uploader")
+      .sort({ createdAt: -1 })
+      .skip((currentPage - 1) * perPage)
+      .limit(perPage);
+    res.status(200).json({ files: files, totalItems: totalItems });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
 };
 
 exports.uploadMultipleFiles = async (req, res) => {
-  const files = req.files;
-  if (!files || files.length === 0) {
-    return res.status(400).json({ message: "No files uploaded" });
-  }
-  const uploadedFiles = [];
-  // Save file paths to the database
-  for (const file of files) {
-    const newFile = new File({
-      filename: file.filename,
-      filePath: path.join("uploads", file.filename),
-    });
-    await newFile.save();
-    uploadedFiles.push(newFile);
-    console.log(uploadedFiles);
-  }
-
-  const file = uploadedFiles.map((file) => file.filename);
-
-  const mailOptions = MultipleMailOptions(files);
-
-  transporter.sendMail(mailOptions, async (error, info) => {
-    if (error) {
-      console.log("Error sending email:", error);
-    } else {
-      console.log("Email sent:", info.response);
-      // Delete the file records from the database after sending the email
-      await File.deleteMany({
-        _id: { $in: uploadedFiles.map((file) => file._id) },
-      });
+  try {
+    const files = req.files;
+    if (!files || files.length === 0) {
+      return res.status(400).json({ message: "No files uploaded" });
     }
-    res.json({ message: "Multiple files uploaded successfully" });
-  });
+    const uploadedFiles = [];
+    // Save file paths to the database
+    for (const file of files) {
+      const newFile = new File({
+        filename: file.filename,
+        filePath: path.join("uploads", file.filename),
+      });
+      await newFile.save();
+      uploadedFiles.push(newFile);
+      console.log(uploadedFiles);
+    }
+
+    // const file = uploadedFiles.map((file) => file.filename);
+
+    const mailOptions = MultipleMailOptions(files);
+
+    transporter.sendMail(mailOptions, async (error, info) => {
+      if (error) {
+        console.log("Error sending email:", error);
+      } else {
+        console.log("Email sent:", info.response);
+        // Delete the file records from the database after sending the email
+        await File.deleteMany({
+          _id: { $in: uploadedFiles.map((file) => file._id) },
+        });
+      }
+      res.json({
+        message: "Multiple File stored and resized successfully",
+        fileLink: `${req.protocol}://${req.get("host")}/file/${
+          req.file.filename
+        }`,
+      });
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
 };
 
 exports.uploadFile = async (req, res) => {
@@ -106,7 +130,7 @@ exports.uploadFile = async (req, res) => {
     }
 
     // res.json({ fileLink: `${req.headers.origin}/file/${file.id}` });
-    const mailOptions = SIngleMailOptions(newFile);
+    const mailOptions = singleMailOptions(newFile, user);
 
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
@@ -118,7 +142,9 @@ exports.uploadFile = async (req, res) => {
       return res.status(200).json({
         message: "File stored and resized successfully",
         user: user.email,
-        fileLink: `/file/${req.file.filename}`,
+        fileLink: `${req.protocol}://${req.get("host")}/file/${
+          req.file.filename
+        }`,
       });
     });
   } catch (err) {
@@ -127,28 +153,84 @@ exports.uploadFile = async (req, res) => {
   }
 };
 
-exports.getFile = async (req, res) => {
+exports.getFile = async (req, res, next) => {
   const user = await User.findOne(req.body.email);
+  const fileId = req.params.id;
+  const file = await File.findById(fileId);
   try {
-    const fileId = req.params.id;
-    const file = await File.findById(fileId);
-
     if (!file) {
-      return res.status(404).json({ message: "File not found" });
+      return res.status(404).json({ message: "file not found" });
     }
-
-    // Here, you might want to implement access control logic if needed,
-    // such as checking if the user requesting the file has appropriate permissions.
-
-    const fileUrl = `/file/${file.filename}`; // Adjust the path as needed
-
-    return res.status(200).json({
+    res.status(200).json({
+      file: file,
       filename: file.filename,
-      filePath: fileUrl,
       uploader: user.email,
     });
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    if (!err.statusCode) {
+      return res.status(500).json({ message: err.message });
+    }
+    next(err);
   }
 };
+
+// exports.updateFile = async (req, res) => {
+//   try {
+//     const fileId = req.params.id;
+//     const updatedMetadata = req.body.metadata; // Assuming you want to update metadata
+
+//     // Find the file by ID
+//     const file = await File.findById(fileId);
+
+//     if (!file) {
+//       return res.status(404).json({ message: "File not found" });
+//     }
+
+//     // Assuming that you have some access control in place (similar to the checkFileAccess middleware)
+//     if (file.uploader.toString() !== req.user.id.toString()) {
+//       return res.status(403).json({ message: "Access forbidden" });
+//     }
+
+//     // Update the file's metadata
+//     file.metadata = updatedMetadata;
+
+//     // Save the updated file to the database
+//     await file.save();
+
+//     return res
+//       .status(200)
+//       .json({ message: "File updated successfully", updatedFile: file });
+//   } catch (err) {
+//     return res.status(500).json({ message: err.message });
+//   }
+// };
+
+// exports.deleteFile = async (req, res) => {
+//   try {
+//     const fileId = req.params.id;
+
+//     // Find the file by ID
+//     const file = await File.findById(fileId);
+
+//     if (!file) {
+//       return res.status(404).json({ message: "File not found" });
+//     }
+
+//     // Assuming that you have some access control in place (similar to the checkFileAccess middleware)
+//     if (file.uploader.toString() !== req.user._id.toString()) {
+//       return res.status(403).json({ message: "Access forbidden" });
+//     }
+
+//     // Delete the file from storage
+//     const filePath = path.join(__dirname, "..", file.filePath);
+//     fs.unlinkSync(filePath);
+
+//     // Remove the file from the database
+//     await file.remove();
+
+//     return res.status(200).json({ message: "File deleted successfully" });
+//   } catch (err) {
+//     return res.status(500).json({ message: err.message });
+//   }
+// };
 
