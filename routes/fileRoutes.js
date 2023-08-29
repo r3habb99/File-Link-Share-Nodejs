@@ -1,6 +1,7 @@
 const express = require("express");
 const fileController = require("../controllers/fileController");
 const multerConfig = require("../utils/multerConfig");
+const auth = require("../middleware/authMiddleware");
 const multer = require("multer");
 
 const router = express.Router();
@@ -25,12 +26,19 @@ const router = express.Router();
  *         name: file
  *         type: file
  *         required: true
+ *       - name: token
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Verification token sent to the user
  *     responses:
  *       200:
  *         description: File uploaded successfully
  */
 router.post(
   "/upload",
+  auth.authenticateUser,
   multer(multerConfig).single("file"),
   fileController.uploadFile
 );

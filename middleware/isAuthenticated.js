@@ -21,6 +21,6 @@ exports.isAuthenticated = (req, res, next) => {
   }
 
   // If the token is valid, attach the user email to the request object and proceed to the next middleware or route handler
-  req.userEmail = decoded.email;
+  req.userEmail = decoded.userId;
   next();
 };

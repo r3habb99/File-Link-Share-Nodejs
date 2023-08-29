@@ -43,7 +43,8 @@ exports.uploadMultipleFiles = async (req, res) => {
     for (const file of files) {
       const newFile = new File({
         filename: file.filename,
-        filePath: path.join("uploads", file.filename),
+        filePath: path.join("uploads/resized", file.filename),
+        uploader: req.userId,
       });
       await newFile.save();
       uploadedFiles.push(newFile);
@@ -81,9 +82,11 @@ exports.uploadFile = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
-    const userId = req.body._id;
 
-    const user = await User.findOne({ userId });
+    // Assuming the user ID is available from authentication middleware
+    const userId = req.userId;
+
+    const user = await User.findById(userId);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -91,14 +94,13 @@ exports.uploadFile = async (req, res) => {
 
     const newFile = new File({
       filename: req.file.filename,
-      filePath: `uploads/${req.file.filename}`,
-      uploader: user._id,
+      filePath: `uploads/resized/${req.file.filename}`,
+      uploader: userId, // Using the logged-in userId
     });
 
     await newFile.save();
 
     user.files.push(newFile._id);
-
     await user.save();
 
     // If the uploaded file is an image, resize it using sharp
@@ -112,14 +114,13 @@ exports.uploadFile = async (req, res) => {
         background: { r: 255, g: 255, b: 255, alpha: 0.5 },
       };
 
-      await sharp(inputFilePath).resize({ target }).toFile(outputFilePath);
+      await sharp(inputFilePath).resize(target).toFile(outputFilePath);
 
       // Update the file's resized path in the database
       newFile.resizedFilePath = outputFilePath;
       await newFile.save();
     }
 
-    // res.json({ fileLink: `${req.headers.origin}/file/${file.id}` });
     const mailOptions = singleMailOptions(newFile, user);
 
     transporter.sendMail(mailOptions, (error, info) => {
@@ -141,6 +142,7 @@ exports.uploadFile = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
+
 
 exports.getFile = async (req, res, next) => {
   const user = await User.findOne(req.body.email);

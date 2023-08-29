@@ -5,7 +5,6 @@ const sharp = require("sharp");
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     let destinationFolder = "uploads/";
-
     if (file.mimetype.startsWith("image")) {
       destinationFolder += "image/";
     } else if (file.mimetype === "application/pdf") {
@@ -25,6 +24,7 @@ const storage = multer.diskStorage({
 
 const fileFilter = (req, file, cb) => {
   console.log(file);
+  console.log(file.size + "!!!!!!!!!!!!!!");
   const allowedImageMimeTypes = [
     "image/jpeg",
     "image/png",
@@ -40,23 +40,22 @@ const fileFilter = (req, file, cb) => {
     cb(new Error("Invalid file type or size"), false);
   }
 };
-const sharpFilter = async (req) => {
-  if (req.file.mimetype.startsWith("image")) {
-    const inputFilePath = `uploads/image/${req.file.filename}`;
-    const outputFilePath = `uploads/resized/${req.file.filename}`;
-    const target = {
-      width: 200,
-      height: 200,
-      fit: sharp.fit.cover,
-      background: { r: 255, g: 255, b: 255, alpha: 0.5 },
-    }; // Specify the desired width
+// exports.sharpFilter = async (req) => {
+//   if (req.file.mimetype.startsWith("image")) {
+//     const inputFilePath = `uploads/image/${req.file.filename}`;
+//     const outputFilePath = `uploads/resized/${req.file.filename}`;
+//     const target = {
+//       width: 200,
+//       height: 200,
+//       fit: sharp.fit.cover,
+//       background: { r: 255, g: 255, b: 255, alpha: 0.5 },
+//     }; // Specify the desired width
 
-    await sharp(inputFilePath).resize({ target }).toFile(outputFilePath);
-  }
-};
+//     await sharp(inputFilePath).resize({ target }).toFile(outputFilePath);
+//   }
+// };
 
 module.exports = {
   storage,
   fileFilter,
-  sharpFilter,
 };

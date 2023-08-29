@@ -77,10 +77,15 @@ exports.loginUser = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const token = jwtUtils.generateToken(user.email);
+    const token = jwtUtils.generateToken(user._id, user.email);
     res
       .status(200)
-      .json({ message: "User Logged In", user: user.email, token });
+      .json({
+        message: "User Logged In",
+        id: user._id,
+        user: user.email,
+        token,
+      });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error during login" });
@@ -131,5 +136,3 @@ exports.verifyEmail = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
-
-

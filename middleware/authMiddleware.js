@@ -6,9 +6,9 @@ exports.authenticateUser = (req, res, next) => {
     return res.status(401).json({ message: "Unauthorized" });
   }
   const decoded = jwtUtils.verifyToken(token);
-  if (!decoded) {
+  if (!decoded || decoded instanceof Error) {
     return res.status(401).json({ message: "Invalid token" });
   }
-  req.user = decoded.username;
+  req.userId = decoded.userId;
   next();
 };

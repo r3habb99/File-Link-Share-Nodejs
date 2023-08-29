@@ -3,8 +3,8 @@ require("dotenv").config();
 
 const SECRET_KEY = process.env.SECRET_KEY;
 
-exports.generateToken = (email) => {
-  return jwt.sign({ email }, SECRET_KEY, { expiresIn: "7d" });
+exports.generateToken = (userId, email) => {
+  return jwt.sign({ userId, email }, SECRET_KEY, { expiresIn: "7d" });
 };
 
 exports.verifyToken = (token) => {
@@ -14,6 +14,3 @@ exports.verifyToken = (token) => {
     return error;
   }
 };
-
-
-
