@@ -35,11 +35,10 @@ exports.registerUser = async (req, res) => {
     });
     await verificationToken.save();
 
-    // Send an email with the verification link to the user
     const verificationLink = `${req.protocol}://${req.get(
       "host"
     )}/users/verify/${user._id}/${token}`; // Construct the verification link from the request origin and the user id and token
-    const mailOptions = successfulRegister(user, verificationLink); // Call the predefined function to create the mail options object
+    const mailOptions = successfulRegister(user, verificationLink);
 
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
@@ -124,16 +123,13 @@ exports.verifyEmail = async (req, res) => {
     user.active = true;
     await user.save();
 
-    // Return a success message with the user details
     return res.status(200).json({
       message: "User verified successfully",
       user: user,
     });
   } catch (error) {
-    // If there is an error, return an error message
     return res.status(500).json({ message: error.message });
   }
 };
-
 
 

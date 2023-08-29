@@ -1,13 +1,18 @@
 const swaggerJsdoc = require("swagger-jsdoc");
 
 const options = {
-  swaggerDefinition: {
+  definition: {
+    openapi: "3.0.0",
     info: {
-      title: "File Sharing API Documentation",
+      title: "File-Share-Services API",
       version: "1.0.0",
-      description: "API documentation for file-sharing Node.js application",
+      description: "API documentation for File-Share-Services",
     },
-    basePath: "/",
+    servers: [
+      {
+        url: "http://localhost:3000",
+      },
+    ],
   },
   apis: ["./routes/fileRoutes.js", "./routes/userRoutes.js"],
 };

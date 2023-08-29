@@ -1,7 +1,5 @@
 const express = require("express");
 const fileController = require("../controllers/fileController");
-const isAuthenticated = require("../middleware/isAuthenticated");
-//const checkFileAccess = require("../middleware/checkAccess");
 const multerConfig = require("../utils/multerConfig");
 const multer = require("multer");
 
@@ -30,6 +28,15 @@ const router = express.Router();
  *     responses:
  *       200:
  *         description: File uploaded successfully
+ */
+router.post(
+  "/upload",
+  multer(multerConfig).single("file"),
+  fileController.uploadFile
+);
+
+/**
+ * @swagger
  * /files/upload-multiple:
  *   post:
  *     summary: Upload multiple files (up to 5)
@@ -45,14 +52,28 @@ const router = express.Router();
  *     responses:
  *       200:
  *         description: Files uploaded successfully
- * /files/getallflies:
+ */
+router.post(
+  "/upload-multiple",
+  multer(multerConfig).array("files", 5),
+  fileController.uploadMultipleFiles
+);
+
+/**
+ * @swagger
+ * /files/getallfiles:
  *   get:
  *     summary: Get a list of all files
  *     tags: [File]
  *     responses:
  *       200:
  *         description: List of files
- * /files/file/{id}:
+ */
+router.get("/getallfiles", fileController.getAllFiles);
+
+/**
+ * @swagger
+ * /files/{id}:
  *   get:
  *     summary: Get a file by ID
  *     tags: [File]
@@ -65,23 +86,6 @@ const router = express.Router();
  *       200:
  *         description: File retrieved successfully
  */
-
-router.post(
-  "/upload",
-  multer(multerConfig).single("file"),
-  fileController.uploadFile
-);
-
-router.post(
-  "/upload-multiple",
-  multer(multerConfig).array("files", 5),
-  fileController.uploadMultipleFiles
-);
-
-router.get("/getallflies", fileController.getAllFiles);
 router.get("/:id", fileController.getFile);
-// router.put("/:id", fileController.updateFile);
-// router.delete("/:id", fileController.deleteFile);
-
 
 module.exports = router;

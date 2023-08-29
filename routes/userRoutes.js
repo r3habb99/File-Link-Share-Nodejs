@@ -1,6 +1,5 @@
 const express = require("express");
 const userController = require("../controllers/userController");
-
 const router = express.Router();
 
 /**
@@ -13,27 +12,38 @@ const router = express.Router();
 /**
  * @swagger
  * /users/register:
- *      post:
- *          summary: Register a new user
- *          description: Creates a new user account with the given email and password
- *          tags: [User]
- *          requestBody:
- *              description: User registration data
- *              required: true
- *              content:
- *                  application/json:
- *                  schema:
- *                      type: object
- *                      properties:
- *                          email:
- *                              type: string
- *                          password:
- *                              type: string
- *              responses:
- *                  200: 
- *                      description: Created
- *                  400:
- *                      description:  Bad Request
+ *   post:
+ *     summary: Register a new user
+ *     description: Creates a new user account with the given email and password
+ *     tags: [User]
+ *     requestBody:
+ *       description: User registration data
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 example: password
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 verificationLink:
+ *                   type: string
+ *                 token:
+ *                   type: string
  *
  */
 router.post("/register", userController.registerUser);
@@ -56,12 +66,10 @@ router.post("/register", userController.registerUser);
  *               email:
  *                 type: string
  *                 format: email
+ *                 example: user@example.com
  *               password:
  *                 type: string
- *                 format: password
- *             example:
- *               email: user@example.com
- *               password: 123456
+ *                 example: password
  *     responses:
  *       200:
  *         description: User authenticated successfully
@@ -70,14 +78,50 @@ router.post("/register", userController.registerUser);
  *             schema:
  *               type: object
  *               properties:
+ *                 message:
+ *                   type: string
+ *                 user:
+ *                   type: string
  *                 token:
  *                   type: string
- *                   description: JWT token for the user
- *
  *
  */
 router.post("/login", userController.loginUser);
 
+/**
+ * @swagger
+ * /users/verify/{userId}/{token}:
+ *   get:
+ *     summary: Verify user's email
+ *     description: Verifies a user's email by checking the provided token
+ *     tags: [User]
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User's ID
+ *       - name: token
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Verification token sent to the user
+ *     responses:
+ *       200:
+ *         description: User verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 user:
+ *                   type: object
+ *
+ */
 router.get("/verify/:userId/:token", userController.verifyEmail);
 
 module.exports = router;
