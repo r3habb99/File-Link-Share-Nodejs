@@ -39,14 +39,13 @@ exports.singleMailOptions = (file, user) => {
   };
 };
 
-exports.MultipleMailOptions = (file, filenames, user) => {
+exports.MultipleMailOptions = (uploadedFiles, user) => {
+  const fileNames = uploadedFiles.map((file) => file.filename).join(", ");
   return {
     from: process.env.EMAIL,
-    to: "idivyansh22@gmail.com",
+    to: user.email,
     subject: "Multiple Files Uploaded",
-    text: `Your multiple files (${filenames.join(
-      ",  "
-    )}) have been uploaded successfully.`,
+    text: `Your multiple files (${fileNames}) have been uploaded successfully.`,
     // attachments: filenames.map((filename) => ({
     //   path: path.join(__dirname, "..", filename.path), //this is important don't change
     //   contentType: "image/jpg",

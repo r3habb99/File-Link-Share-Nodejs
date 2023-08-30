@@ -77,15 +77,12 @@ exports.loginUser = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const token = jwtUtils.generateToken(user._id, user.email);
-    res
-      .status(200)
-      .json({
-        message: "User Logged In",
-        id: user._id,
-        user: user.email,
-        token,
-      });
+    const token = jwtUtils.generateToken(user._id);
+    res.status(200).json({
+      message: "User Logged In",
+      id: user._id,
+      token,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error during login" });
@@ -94,37 +91,30 @@ exports.loginUser = async (req, res) => {
 
 exports.verifyEmail = async (req, res) => {
   try {
-    // Get the user id and token from the request parameters
     const userId = req.params.userId;
     const token = req.params.token;
 
-    // Find the verification token document by user id and token in the database
     const verificationToken = await VerificationToken.findOne({
       userId: userId,
       token: token,
     });
 
-    // If no verification token is found, return an error message
     if (!verificationToken) {
       return res
         .status(404)
         .json({ message: "Invalid or expired verification link" });
     }
 
-    // Find the user document by user id in the database
     const user = await User.findById(userId);
 
-    // If no user is found, return an error message
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // If the user is already active, return a success message
     if (user.active) {
       return res.status(200).json({ message: "User already verified" });
     }
 
-    // Set the user's active flag to true and save the user document to the database
     user.active = true;
     await user.save();
 
