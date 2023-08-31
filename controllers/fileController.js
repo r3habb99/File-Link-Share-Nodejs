@@ -1,6 +1,5 @@
 const multer = require("multer");
 const multerConfig = require("../utils/multerConfig");
- 
 const {
   transporter,
   singleMailOptions,
@@ -85,19 +84,15 @@ exports.uploadMultipleFiles = async (req, res) => {
       res.status(400).json({ message: "No files uploaded" });
     }
   } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
+    return res.status(500).json({ message: err.message });
   }
 };
 
 exports.uploadFile = async (req, res) => {
-  // console.log("controller check req");
   try {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
-
     const userId = req.userId;
 
     const user = await User.findById(userId);
@@ -111,7 +106,6 @@ exports.uploadFile = async (req, res) => {
       filePath: `uploads/${req.file.filename}`,
       uploader: userId,
     });
-
     await newFile.save();
 
     user.files.push(newFile._id);
@@ -128,13 +122,11 @@ exports.uploadFile = async (req, res) => {
       };
 
       await sharp(inputFilePath).resize(target).toFile(outputFilePath);
-
       newFile.resizedFilePath = outputFilePath;
       await newFile.save();
     }
 
     const mailOptions = singleMailOptions(newFile, user);
-
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
         console.log("Error sending email:", error);
@@ -285,31 +277,5 @@ exports.deleteFIle = async (req, res) => {
     if (!err.statusCode) {
       err.statusCode = 500;
     }
-  }
-};
-
-exports.sendFilesByEmail = async (req, res) => {
-  const userId = req.user._id; // Assuming you have this from your authentication middleware
-  const toEmail = req.body.toEmail; // Receiver's email
-
-  try {
-    const userFiles = await File.find({ uploader: userId });
-
-    const attachments = userFiles.map((file) => {
-      return {
-        filename: file.filename,
-        path: file.filePath, // Adjust to your file storage path
-      };
-    });
-
-    const subject = "Files from Your Account";
-    const text = "Here are the files you uploaded.";
-
-    sendEmailWithFiles(toEmail, subject, text, attachments);
-
-    res.json({ message: "Files sent by email" });
-  } catch (error) {
-    console.error("Error sending files by email:", error);
-    res.status(500).json({ message: "Error sending files by email" });
   }
 };
