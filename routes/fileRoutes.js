@@ -23,6 +23,23 @@ router.post(
 
 router.get("/getallfiles", fileController.getAllFiles);
 
+router.get("/:fileId", fileController.getFile);
+
+router.put(
+  "/:fileId",
+  auth.authenticateUser,
+  multer(multerConfig).single("file"),
+  fileController.updateFile
+);
+
+// router.put(
+//   "/:fileId",
+//   auth.authenticateUser,
+//   multer(multerConfig).array("files", 5),
+//   fileController.updateMultipleFile
+// );
+
+router.get("/search/:key", fileController.getFileKey);
 
 
 module.exports = router;

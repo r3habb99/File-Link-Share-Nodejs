@@ -155,7 +155,7 @@ exports.uploadFile = async (req, res) => {
 
 exports.getFile = async (req, res, next) => {
   const user = await User.findOne(req.body.email);
-  const fileId = req.params.id;
+  const fileId = req.params.fileId;
   const file = await File.findById(fileId);
   try {
     if (!file) {
@@ -171,5 +171,91 @@ exports.getFile = async (req, res, next) => {
       return res.status(500).json({ message: err.message });
     }
     next(err);
+  }
+};
+
+exports.updateFile = async (req, res) => {
+  try {
+    const fileId = req.params.fileId;
+
+    // Find the existing file by its ID
+    const existingFile = await File.findById(fileId);
+
+    if (!existingFile) {
+      return res.status(404).json({ error: "File not found" });
+    }
+
+    // If a new file is provided, update the fields
+    if (req.file) {
+      existingFile.filename = req.file.filename;
+      existingFile.filePath = req.file.path;
+    }
+
+    // Check if the user is logged in (assuming you have user authentication)
+    if (req.user) {
+      existingFile.uploader = req.user._id; // Assuming req.user._id represents the user's ObjectId
+    }
+
+    // Save the updated file
+    await existingFile.save();
+
+    return res
+      .status(200)
+      .json({ message: "File updated successfully", file: existingFile });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ error: "An error occurred while updating the file" });
+  }
+};
+
+// exports.updateMultipleFile = async (req, res) => {
+//   try {
+//     const fileId = req.params.fileId;
+
+//     // Find the existing file by its ID
+//     const existingFile = await File.findById(fileId);
+
+//     if (!existingFile) {
+//       return res.status(404).json({ error: "File not found" });
+//     }
+
+//     // If new files are provided, update the fields
+//     if (req.files && req.files.length > 0) {
+//       const updatedFiles = req.files.map((file) => ({
+//         filename: file.filename,
+//         filePath: file.path,
+//         uploader: req.user ? req.user._id : existingFile.uploader,
+//       }));
+
+//       existingFile.files = updatedFiles;
+//     }
+
+//     // Save the updated file
+//     await existingFile.save();
+
+//     return res.status(200).json({ message: "Files updated successfully" });
+//   } catch (error) {
+//     console.error(error);
+//     return res
+//       .status(500)
+//       .json({ error: "An error occurred while updating the files" });
+//   }
+// };
+
+exports.getFileKey = async (req, res) => {
+  try {
+    let result = await File.find({
+      $or: [{ filename: { $regex: req.params.key } }],
+    });
+    return res
+      .status(200)
+      .json({ message: "File Found successfully", file: result });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ error: "An error occurred while updating the file" });
   }
 };

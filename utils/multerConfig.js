@@ -1,6 +1,5 @@
 const multer = require("multer");
 const path = require("path");
-console.log("messagee multer");
 const maxSize = 5 * 1024 * 1024; // 5MB
 
 const storage = multer.diskStorage({
@@ -13,7 +12,7 @@ const storage = multer.diskStorage({
     } else if (file.mimetype === "application/msword") {
       destinationFolder += "docs/";
     } else {
-      console.log("No files are matched with this configuration");
+      console.log("No files are matched with this extension");
     }
     cb(null, destinationFolder);
   },
@@ -24,7 +23,7 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  console.log(file);
+  // console.log(file);
   const allowedImageMimeTypes = [
     "image/jpeg",
     "image/png",
