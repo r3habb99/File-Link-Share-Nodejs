@@ -37,7 +37,7 @@ exports.registerUser = async (req, res) => {
 
     const verificationLink = `${req.protocol}://${req.get(
       "host"
-    )}/users/verify/${user._id}/${token}`; // Construct the verification link from the request origin and the user id and token
+    )}/users/verify/${user._id}/${token}`;
     const mailOptions = successfulRegister(user, verificationLink);
 
     transporter.sendMail(mailOptions, (error, info) => {
@@ -94,7 +94,7 @@ exports.verifyEmail = async (req, res) => {
     const userId = req.params.userId;
     const token = req.params.token;
 
-    const verificationToken = await VerificationToken.findOne({
+    const verificationToken = await VerificationToken.findOneAndDelete({
       userId: userId,
       token: token,
     });

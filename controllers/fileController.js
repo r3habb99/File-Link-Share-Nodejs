@@ -90,7 +90,7 @@ exports.uploadMultipleFiles = async (req, res) => {
 };
 
 exports.uploadFile = async (req, res) => {
-  console.log("controller check req");
+  // console.log("controller check req");
   try {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
