@@ -41,7 +41,7 @@ router.put(
 
 router.get("/search/:key", fileController.getFileKey);
 
-router.delete("/:fileId", fileController.deleteFIle);
+router.delete("/:fileId", auth.authenticateUser, fileController.deleteFIle);
 
 
 module.exports = router;

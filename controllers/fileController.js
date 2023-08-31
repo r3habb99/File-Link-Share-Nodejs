@@ -177,26 +177,20 @@ exports.getFile = async (req, res, next) => {
 exports.updateFile = async (req, res) => {
   try {
     const fileId = req.params.fileId;
-
-    // Find the existing file by its ID
     const existingFile = await File.findById(fileId);
 
     if (!existingFile) {
       return res.status(404).json({ error: "File not found" });
     }
 
-    // If a new file is provided, update the fields
     if (req.file) {
       existingFile.filename = req.file.filename;
       existingFile.filePath = req.file.path;
     }
-
-    // Check if the user is logged in (assuming you have user authentication)
     if (req.user) {
-      existingFile.uploader = req.user._id; // Assuming req.user._id represents the user's ObjectId
+      existingFile.uploader = req.user._id;
     }
 
-    // Save the updated file
     await existingFile.save();
 
     return res
@@ -262,12 +256,16 @@ exports.getFileKey = async (req, res) => {
 
 exports.deleteFIle = async (req, res) => {
   const fileId = req.params.fileId;
-
   try {
     const fileToDelete = await File.findById(fileId);
 
     if (!fileToDelete) {
       return res.status(404).json({ message: "File not found" });
+    }
+    if (fileToDelete.uploader.toString() !== req.userId) {
+      return res
+        .status(403)
+        .json({ message: "You are not authorized to delete this file" });
     }
 
     const filePath = fileToDelete.filePath;
