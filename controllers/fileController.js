@@ -85,7 +85,9 @@ exports.uploadMultipleFiles = async (req, res) => {
       res.status(400).json({ message: "No files uploaded" });
     }
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
   }
 };
 
@@ -149,7 +151,9 @@ exports.uploadFile = async (req, res) => {
       }`,
     });
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
   }
 };
 
@@ -168,7 +172,7 @@ exports.getFile = async (req, res, next) => {
     });
   } catch (err) {
     if (!err.statusCode) {
-      return res.status(500).json({ message: err.message });
+      err.statusCode = 500;
     }
     next(err);
   }
@@ -196,11 +200,10 @@ exports.updateFile = async (req, res) => {
     return res
       .status(200)
       .json({ message: "File updated successfully", file: existingFile });
-  } catch (error) {
-    console.error(error);
-    return res
-      .status(500)
-      .json({ error: "An error occurred while updating the file" });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
   }
 };
 
@@ -246,11 +249,10 @@ exports.getFileKey = async (req, res) => {
     return res
       .status(200)
       .json({ message: "File Found successfully", file: result });
-  } catch (error) {
-    console.error(error);
-    return res
-      .status(500)
-      .json({ error: "An error occurred while updating the file" });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
   }
 };
 
@@ -279,9 +281,35 @@ exports.deleteFIle = async (req, res) => {
     await File.findByIdAndDelete(fileId);
 
     return res.status(200).json({ message: "File deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting file:", error);
-    return res.status(500).json({ message: "Internal server error" });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
   }
 };
 
+exports.sendFilesByEmail = async (req, res) => {
+  const userId = req.user._id; // Assuming you have this from your authentication middleware
+  const toEmail = req.body.toEmail; // Receiver's email
+
+  try {
+    const userFiles = await File.find({ uploader: userId });
+
+    const attachments = userFiles.map((file) => {
+      return {
+        filename: file.filename,
+        path: file.filePath, // Adjust to your file storage path
+      };
+    });
+
+    const subject = "Files from Your Account";
+    const text = "Here are the files you uploaded.";
+
+    sendEmailWithFiles(toEmail, subject, text, attachments);
+
+    res.json({ message: "Files sent by email" });
+  } catch (error) {
+    console.error("Error sending files by email:", error);
+    res.status(500).json({ message: "Error sending files by email" });
+  }
+};

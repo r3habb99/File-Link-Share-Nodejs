@@ -11,7 +11,16 @@ const {
 require("dotenv").config();
 const path = require("path");
 
+const { validationResult } = require("express-validator");
+
 exports.registerUser = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const error = new Error("Validation Failed");
+    error.statusCode = 422;
+    error.data = errors.array();
+    throw error;
+  }
   const email = req.body.email;
   const password = req.body.password;
   try {
@@ -56,9 +65,10 @@ exports.registerUser = async (req, res) => {
       verificationLink,
       token,
     });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error registering user" });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
   }
 };
 
@@ -83,9 +93,10 @@ exports.loginUser = async (req, res) => {
       id: user._id,
       token,
     });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error during login" });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
   }
 };
 
@@ -122,7 +133,9 @@ exports.verifyEmail = async (req, res) => {
       message: "User verified successfully",
       user: user,
     });
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
   }
 };
