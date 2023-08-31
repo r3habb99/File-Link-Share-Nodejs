@@ -71,20 +71,22 @@ exports.uploadMultipleFiles = async (req, res) => {
         } else {
           console.log("Email sent:", info.response);
         }
-        // const fileLinks = uploadedFiles.map((file) => {
-        //   return `${req.protocol}://${req.get("host")}/file/${req.file}`;
-        // });
+
         res.json({
           message: "Multiple File stored successfully",
           user: user.email,
-          // fileLinks,
+          fileLinks: uploadedFiles.map((file) => {
+            return `${req.protocol}://${req.get("host")}/files/${file}`;
+          }),
         });
       });
     } else {
       res.status(400).json({ message: "No files uploaded" });
     }
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
   }
 };
 
