@@ -10,7 +10,7 @@ exports.authenticateUser = (req, res, next) => {
   if (!decoded || decoded instanceof Error) {
     return res.status(401).json({ message: "Invalid token" });
   }
-  console.log("end auth");
+  // console.log("end auth");
   req.userId = decoded.userId;
   next();
 };

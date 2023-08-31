@@ -259,3 +259,31 @@ exports.getFileKey = async (req, res) => {
       .json({ error: "An error occurred while updating the file" });
   }
 };
+
+exports.deleteFIle = async (req, res) => {
+  const fileId = req.params.fileId;
+
+  try {
+    const fileToDelete = await File.findById(fileId);
+
+    if (!fileToDelete) {
+      return res.status(404).json({ message: "File not found" });
+    }
+
+    const filePath = fileToDelete.filePath;
+    const fullPath = path.join(__dirname, filePath);
+    fs.unlink(fullPath, (err) => {
+      if (err) {
+        console.error("Error deleting file:", err);
+      }
+    });
+
+    await File.findByIdAndDelete(fileId);
+
+    return res.status(200).json({ message: "File deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting file:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+

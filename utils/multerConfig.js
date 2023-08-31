@@ -33,7 +33,7 @@ const fileFilter = (req, file, cb) => {
   ];
 
   if (allowedImageMimeTypes.includes(file.mimetype)) {
-    console.log("exist");
+    // console.log("exist");
     cb(null, true);
   } else {
     cb(new Error("Invalid file type or size"), false);

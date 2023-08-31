@@ -27,15 +27,12 @@ try {
 
 exports.singleMailOptions = (file, user) => {
   return {
-    from: process.env.EMAIL, // Sender address
-    to: user.email, // Receiver address
-    subject: "Your file has been uploaded", // Subject line
+    from: process.env.EMAIL,
+    to: user.email,
+    subject: "Your file has been uploaded",
     html: `<p>Hi ${user.email},</p>
 <p>Thank you for uploading your file on our website. You can access your file using the link below.</p>
-<p><a href="${file.filePath}">Download your file</a></p>
-<p>If you have any questions or feedback, please reply to this email.</p>
-<p>Best regards,</p>
-<p>The Website Team</p>`, // HTML body
+<p><a href="${file.filePath}">Download your file</a></p>`,
   };
 };
 
@@ -45,7 +42,9 @@ exports.MultipleMailOptions = (uploadedFiles, user) => {
     from: process.env.EMAIL,
     to: user.email,
     subject: "Multiple Files Uploaded",
-    text: `Your multiple files (${fileNames}) have been uploaded successfully.`,
+    html: `<p>Hi ${user.email},</p>
+    <p>Your multiple files have been uploaded successfully.</p>
+    <p><a href="${fileNames.filePath}">Download your file</a></p>`,
     // attachments: filenames.map((filename) => ({
     //   path: path.join(__dirname, "..", filename.path), //this is important don't change
     //   contentType: "image/jpg",
@@ -55,14 +54,11 @@ exports.MultipleMailOptions = (uploadedFiles, user) => {
 
 exports.successfulRegister = (user, verificationLink) => {
   return {
-    from: process.env.EMAIL, // Sender address
-    to: user.email, // Receiver address
-    subject: "Verify your email address", // Subject line
+    from: process.env.EMAIL,
+    to: user.email,
+    subject: "Verify your email address",
     html: `<p>Hi ${user.email},</p>
                 <p>Thank you for registering on our website. To complete your registration, please click on the link below to verify your email address.</p>
-              <p><a href="${verificationLink}">Verify your email</a></p>
-              <p>If you did not register on our website, please ignore this email.</p>
-              <p>Best regards,</p>
-              <p>The Website Team</p>`,
+              <p><a href="${verificationLink}">Verify your email</a></p>`,
   };
 };
