@@ -2,6 +2,7 @@ const nodemailer = require("nodemailer");
 
 // require("dotenv").config();
 const path = require("path");
+const user = require("../models/user");
 
 try {
   exports.transporter = nodemailer.createTransport({
@@ -36,15 +37,16 @@ exports.singleMailOptions = (file, user) => {
   };
 };
 
-exports.MultipleMailOptions = (uploadedFiles, user) => {
-  const fileNames = uploadedFiles.map((file) => file.filename).join(", ");
+exports.MultipleMailOptions = (files, user) => {
   return {
     from: process.env.EMAIL,
     to: user.email,
     subject: "Multiple Files Uploaded",
     html: `<p>Hi ${user.email},</p>
     <p>Your multiple files have been uploaded successfully.</p>
-    <p><a href="${fileNames.filePath}">Download your file</a></p>`,
+    <p><a href="${files}">Download your file</a></p>
+    <ul><li><a href="${files}">List of Files</a></li></ul>
+        `,
     // attachments: filenames.map((filename) => ({
     //   path: path.join(__dirname, "..", filename.path), //this is important don't change
     //   contentType: "image/jpg",
@@ -60,5 +62,16 @@ exports.successfulRegister = (user, verificationLink) => {
     html: `<p>Hi ${user.email},</p>
                 <p>Thank you for registering on our website. To complete your registration, please click on the link below to verify your email address.</p>
               <p><a href="${verificationLink}">Verify your email</a></p>`,
+  };
+};
+
+exports.sendDownloadLinkEmail = (toEmail, downloadLink) => {
+  return {
+    from: user.email,
+    to: toEmail,
+    subject: "Download your file",
+    html: `<p>Hi ${toEmail}</p>
+    <p>This is your file to download.</p>
+    <p><a href="${downloadLink}">Download</a></p>`,
   };
 };

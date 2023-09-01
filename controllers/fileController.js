@@ -1,9 +1,11 @@
 const multer = require("multer");
+const jwtUtils = require("../utils/jwtUtils");
 const multerConfig = require("../utils/multerConfig");
 const {
   transporter,
   singleMailOptions,
   MultipleMailOptions,
+  sendDownloadLinkEmail,
 } = require("../utils/nodemailerConfig");
 
 require("dotenv").config();
@@ -59,12 +61,8 @@ exports.uploadMultipleFiles = async (req, res) => {
 
       uploadedFiles.push(newFile._id);
     }
-
     if (uploadedFiles) {
-      const file = uploadedFiles.map((file) => file.filename);
-
       const mailOptions = MultipleMailOptions(uploadedFiles, user);
-
       transporter.sendMail(mailOptions, async (error, info) => {
         if (error) {
           console.log("Error sending email:", error);
@@ -78,6 +76,7 @@ exports.uploadMultipleFiles = async (req, res) => {
           fileLinks: uploadedFiles.map((file) => {
             return `${req.protocol}://${req.get("host")}/files/${file}`;
           }),
+          mailOptions,
         });
       });
     } else {
@@ -140,7 +139,7 @@ exports.uploadFile = async (req, res) => {
     return res.status(200).json({
       message: "File stored and resized successfully",
       user: user.email,
-      fileLink: `${req.protocol}://${req.get("host")}/file/${
+      fileLink: `${req.protocol}://${req.get("host")}/files/${
         req.file.filename
       }`,
     });
@@ -188,8 +187,20 @@ exports.updateFile = async (req, res) => {
     if (req.user) {
       existingFile.uploader = req.user._id;
     }
+    if (req.file.mimetype.startsWith("image")) {
+      const inputFilePath = `uploads/image/${req.file.filename}`;
+      const outputFilePath = `uploads/resized/${req.file.filename}`;
+      const target = {
+        width: 200,
+        height: 200,
+        fit: sharp.fit.cover,
+        background: { r: 255, g: 255, b: 255, alpha: 0.5 },
+      };
 
-    await existingFile.save();
+      await sharp(inputFilePath).resize(target).toFile(outputFilePath);
+      existingFile.resizedFilePath = outputFilePath;
+      await existingFile.save();
+    }
 
     return res
       .status(200)
@@ -278,6 +289,48 @@ exports.deleteFIle = async (req, res) => {
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
+    }
+  }
+};
+
+exports.downloadFile = async (req, res) => {
+  const fileId = req.params.fileId;
+  const file = await File.findById(fileId);
+
+  if (!file) {
+    return res.status(404).json({ message: "File not found" });
+  }
+
+  const filePath = file.filePath;
+  const fullPath = path.join(__dirname, filePath);
+
+  // Check if the file is public or private
+  if (file.publicAccess === true) {
+    res.download(fullPath);
+  } else {
+    const userId = req.userId;
+    if (userId === file.uploader) {
+      res.download(fullPath);
+    } else {
+      const token = jwtUtils.generateDownloadToken(file, userId);
+      const downloadLink = `${req.protocol}://${req.get(
+        "host"
+      )}/download/${token}`;
+      const mailOptions = sendDownloadLinkEmail(
+        "idivyansh22@gmail.com",
+        downloadLink
+      );
+      transporter.sendMail(mailOptions, async (error, info) => {
+        if (error) {
+          console.log("Error sending email:", error);
+        } else {
+          console.log("Email sent:", info.response);
+
+          res
+            .status(200)
+            .json({ message: "Email sent with download link", mailOptions });
+        }
+      });
     }
   }
 };

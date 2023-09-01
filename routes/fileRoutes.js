@@ -43,5 +43,11 @@ router.get("/search/:key", fileController.getFileKey);
 
 router.delete("/:fileId", auth.authenticateUser, fileController.deleteFIle);
 
+router.get(
+  "/download/:fileId",
+  auth.authenticateUser,
+  fileController.downloadFile
+);
+
 
 module.exports = router;
