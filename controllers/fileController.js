@@ -27,10 +27,9 @@ exports.getAllFiles = async (req, res, next) => {
       .skip((currentPage - 1) * perPage)
       .limit(perPage);
     res.status(200).json({ files: files, totalItems: totalItems });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error registering user" });
     next(err);
   }
 };
@@ -82,10 +81,9 @@ exports.uploadMultipleFiles = async (req, res) => {
     } else {
       res.status(400).json({ message: "No files uploaded" });
     }
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error registering user" });
   }
 };
 
@@ -143,10 +141,9 @@ exports.uploadFile = async (req, res) => {
         req.file.filename
       }`,
     });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
+  }catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error registering user" });
   }
 };
 
@@ -163,11 +160,10 @@ exports.getFile = async (req, res, next) => {
       filename: file.filename,
       uploader: user.email,
     });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
-    next(err);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error registering user" });
+    next(error);
   }
 };
 
@@ -205,46 +201,12 @@ exports.updateFile = async (req, res) => {
     return res
       .status(200)
       .json({ message: "File updated successfully", file: existingFile });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error registering user" });
   }
 };
 
-// exports.updateMultipleFile = async (req, res) => {
-//   try {
-//     const fileId = req.params.fileId;
-
-//     // Find the existing file by its ID
-//     const existingFile = await File.findById(fileId);
-
-//     if (!existingFile) {
-//       return res.status(404).json({ error: "File not found" });
-//     }
-
-//     // If new files are provided, update the fields
-//     if (req.files && req.files.length > 0) {
-//       const updatedFiles = req.files.map((file) => ({
-//         filename: file.filename,
-//         filePath: file.path,
-//         uploader: req.user ? req.user._id : existingFile.uploader,
-//       }));
-
-//       existingFile.files = updatedFiles;
-//     }
-
-//     // Save the updated file
-//     await existingFile.save();
-
-//     return res.status(200).json({ message: "Files updated successfully" });
-//   } catch (error) {
-//     console.error(error);
-//     return res
-//       .status(500)
-//       .json({ error: "An error occurred while updating the files" });
-//   }
-// };
 
 exports.getFileKey = async (req, res) => {
   try {
@@ -254,10 +216,9 @@ exports.getFileKey = async (req, res) => {
     return res
       .status(200)
       .json({ message: "File Found successfully", file: result });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error registering user" });
   }
 };
 
@@ -286,10 +247,9 @@ exports.deleteFIle = async (req, res) => {
     await File.findByIdAndDelete(fileId);
 
     return res.status(200).json({ message: "File deleted successfully" });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
+  }catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error registering user" });
   }
 };
 

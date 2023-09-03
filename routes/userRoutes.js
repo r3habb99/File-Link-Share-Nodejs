@@ -3,144 +3,40 @@ const userController = require("../controllers/userController");
 const { body } = require("express-validator");
 const User = require("../models/user");
 const router = express.Router();
+const responseMessages  = require("../Responses/responseMessages")
 
-/**
- * @swagger
- * tags:
- *   name: User
- *   description: API for user registration and authentication
- */
-
-/**
- * @swagger
- * /users/register:
- *   post:
- *     summary: Register a new user
- *     description: Creates a new user account with the given email and password
- *     tags: [User]
- *     requestBody:
- *       description: User registration data
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               email:
- *                 type: string
- *                 example: user@example.com
- *               password:
- *                 type: string
- *                 example: password
- *     responses:
- *       201:
- *         description: User registered successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 verificationLink:
- *                   type: string
- *                 token:
- *                   type: string
- *
- */
+const { validationResult} = require("express-validator")
+// Custom validation error handler
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (errors.isEmpty()) {
+    return next();
+  }
+  const errorArray = errors.array().map((error) => error.msg);
+  return res.status(400).json(responseMessages.error(400, 'Validation error', errorArray));
+};
 router.post(
-  "/register",
-  [
-    body("email")
-      .isEmail()
-      .withMessage("Please enter valid email")
-      .custom((value, { req }) => {
-        return User.findOne({ email: value }).then((userDoc) => {
-          if (userDoc) {
-            return Promise.reject("Email already already exists");
-          }
-        });
-      })
-      .normalizeEmail(),
-    body("password").trim().isLength({ min: 5 }),
-  ],
+  "/register", [
+    body('name').notEmpty().withMessage('Name is required'),
+    body('gender').isIn(['M', 'F']).withMessage('Gender must be M or F'),
+    body('email').notEmpty().isEmail().withMessage('Invalid email').normalizeEmail()
+    .custom(async (value, { req }) => {
+      const userDoc = await User.findOne({ email: value });
+      if (userDoc) {
+        return Promise.reject("Email already already exists");
+      }
+    }),
+    body('password').notEmpty().isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  ], validate,
   userController.registerUser
 );
 
-/**
- * @swagger
- * /users/login:
- *   post:
- *     summary: Authenticate a user
- *     description: Verifies the user credentials and returns a token if valid
- *     tags: [User]
- *     requestBody:
- *       description: User login data
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: user@example.com
- *               password:
- *                 type: string
- *                 example: password
- *     responses:
- *       200:
- *         description: User authenticated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 user:
- *                   type: string
- *                 token:
- *                   type: string
- *
- */
-router.post("/login", userController.loginUser);
+router.post("/login",[
+  body('email').notEmpty().isEmail().withMessage('Invalid email').normalizeEmail(),
+  body('password').notEmpty().isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+], userController.loginUser);
 
-/**
- * @swagger
- * /users/verify/{userId}/{token}:
- *   get:
- *     summary: Verify user's email
- *     description: Verifies a user's email by checking the provided token
- *     tags: [User]
- *     parameters:
- *       - name: userId
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *         description: User's ID
- *       - name: token
- *         in: path
- *         required: true
- *         schema:
- *           type: string
- *         description: Verification token sent to the user
- *     responses:
- *       200:
- *         description: User verified successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 user:
- *                   type: object
- *
- */
+
 router.get("/verify/:userId/:token", userController.verifyEmail);
 
 module.exports = router;

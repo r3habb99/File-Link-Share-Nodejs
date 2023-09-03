@@ -1,12 +1,14 @@
-const bcrypt = require("bcrypt");
+require("dotenv").config()
+const bcrypt = require("bcryptjs")
 const jwtUtils = require("../utils/jwtUtils");
 const User = require("../models/user");
 const VerificationToken = require("../models/verifictionToken");
-
+const responseMessages  = require("../Responses/responseMessages")
 const {
   transporter,
   successfulRegister,
 } = require("../utils/nodemailerConfig");
+
 
 require("dotenv").config();
 const path = require("path");
@@ -14,27 +16,26 @@ const path = require("path");
 const { validationResult } = require("express-validator");
 
 exports.registerUser = async (req, res) => {
+  const {  name, gender,email, password } = req.body;
   const errors = validationResult(req);
+
   if (!errors.isEmpty()) {
-    const error = new Error("Validation Failed");
-    error.statusCode = 422;
-    error.data = errors.array();
-    throw error;
+    return res.status(400).json(responseMessages.error(400, 'Validation error', errors.array().map((error) => error.msg)));
   }
-  const email = req.body.email;
-  const password = req.body.password;
   try {
     const existingUser = await User.findOne({ email: email });
     if (existingUser) {
-      return res.status(400).json({ message: "Email already exists" });
+      return res.status(400).json(responseMessages.error(400, "Email already exists"));
     }
 
     // Hash the password and create a new user
     const hashedPassword = await bcrypt.hash(password, 12);
     const user = new User({
-      email: email,
+      name,
+      gender,
+      email,
       password: hashedPassword,
-      active: false,
+      active: false
     });
 
     const token = jwtUtils.generateToken();
@@ -44,9 +45,8 @@ exports.registerUser = async (req, res) => {
     });
     await verificationToken.save();
 
-    const verificationLink = `${req.protocol}://${req.get(
-      "host"
-    )}/users/verify/${user._id}/${token}`;
+    
+    const verificationLink = `${process.env.BASE_URL}/users/verify/${user._id}/${token}`;
     const mailOptions = successfulRegister(user, verificationLink);
 
     transporter.sendMail(mailOptions, (error, info) => {
@@ -59,44 +59,37 @@ exports.registerUser = async (req, res) => {
 
     // Save the user to the database and return a success message
     await user.save();
-    res.status(201).json({
-      message:
-        "User registered successfully. Please check your email for verification link.",
-      verificationLink,
-      token,
-    });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
+    res.status(201).json(
+    responseMessages.success(201, 'User registered successfully. Please check your email for verification link.', { verificationLink, token }));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json(responseMessages.error(500, 'Error registering user'));
   }
 };
 
 exports.loginUser = async (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json(responseMessages.error(400, 'Validation error', errors.array().map((error) => error.msg)));
+  }
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json(responseMessages.error(401, "Invalid Credentials", {user}));
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json(responseMessages.error(401, "Password does not matches", {isPasswordValid}));
     }
 
     const token = jwtUtils.generateToken(user._id);
-    res.status(200).json({
-      message: "User Logged In",
-      id: user._id,
-      token,
-    });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
+    res.status(200).json(responseMessages.success(200, "User logged in", {id: user._id, token}));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json(responseMessages.error(500, 'Error registering user'));
   }
 };
 
@@ -113,17 +106,17 @@ exports.verifyEmail = async (req, res) => {
     if (!verificationToken) {
       return res
         .status(404)
-        .json({ message: "Invalid or expired verification link" });
+        .json(responseMessages.error(404, "Invalid or expired verification link"));
     }
 
     const user = await User.findById(userId);
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json(404, "Bad Request, User not found");
     }
 
     if (user.active) {
-      return res.status(200).json({ message: "User already verified" });
+      return res.status(200).json(200, "User already verified");
     }
 
     user.active = true;
@@ -133,9 +126,8 @@ exports.verifyEmail = async (req, res) => {
       message: "User verified successfully",
       user: user,
     });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error registering user" });
   }
 };
