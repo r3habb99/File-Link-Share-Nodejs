@@ -72,24 +72,40 @@ exports.loginUser = async (req, res) => {
   const password = req.body.password;
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json(responseMessages.error(400, 'Validation error', errors.array().map((error) => error.msg)));
+    return res.status(400).json(
+      responseMessages.error(
+        400,
+        "Validation error",
+        errors.array().map((error) => error.msg)
+      )
+    );
   }
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json(responseMessages.error(401, "Invalid Credentials", {user}));
+      return res
+        .status(401)
+        .json(responseMessages.error(401, "Invalid email Credentials"));
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json(responseMessages.error(401, "Password does not matches", {isPasswordValid}));
+      return res.status(401).json(
+        responseMessages.error(401, "Password does not matches", {
+          isPasswordValid,
+        })
+      );
     }
 
     const token = jwtUtils.generateToken(user._id);
-    res.status(200).json(responseMessages.success(200, "User logged in", {id: user._id, token}));
+    res
+      .status(200)
+      .json(
+        responseMessages.success(200, "User logged in", { id: user._id, token })
+      );
   } catch (error) {
     console.error(error);
-    res.status(500).json(responseMessages.error(500, 'Error registering user'));
+    res.status(500).json(responseMessages.error(500, "Error registering user"));
   }
 };
 
@@ -106,7 +122,9 @@ exports.verifyEmail = async (req, res) => {
     if (!verificationToken) {
       return res
         .status(404)
-        .json(responseMessages.error(404, "Invalid or expired verification link"));
+        .json(
+          responseMessages.error(404, "Invalid or expired verification link")
+        );
     }
 
     const user = await User.findById(userId);
@@ -122,12 +140,13 @@ exports.verifyEmail = async (req, res) => {
     user.active = true;
     await user.save();
 
-    return res.status(200).json({
-      message: "User verified successfully",
-      user: user,
-    });
+    return res.status(200).json(
+      responseMessages.success(200, "User verified successfully", {
+        user: user,
+      })
+    );
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error registering user" });
+    res.status(500).json(responseMessages.error(500, "Error registering user"));
   }
 };

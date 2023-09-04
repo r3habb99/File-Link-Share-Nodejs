@@ -1,11 +1,10 @@
 const express = require("express");
 const userController = require("../controllers/userController");
-const { body } = require("express-validator");
+const { body, validationResult } = require("express-validator");
 const User = require("../models/user");
 const router = express.Router();
-const responseMessages  = require("../Responses/responseMessages")
+const responseMessages = require("../Responses/responseMessages");
 
-const { validationResult} = require("express-validator")
 // Custom validation error handler
 const validate = (req, res, next) => {
   const errors = validationResult(req);

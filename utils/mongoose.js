@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const MONGODB_URI = "mongodb://localhost:27017/DB-File";
+const MONGODB_URI = "mongodb://localhost:27017/DB-Files";
 
 mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,

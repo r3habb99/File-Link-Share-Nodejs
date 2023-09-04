@@ -15,6 +15,7 @@ const fs = require("fs");
 const sharp = require("sharp");
 const File = require("../models/file");
 const User = require("../models/user");
+const responseMessages = require("../Responses/responseMessages");
 
 exports.getAllFiles = async (req, res, next) => {
   const currentPage = req.query.page || 1;
@@ -26,10 +27,15 @@ exports.getAllFiles = async (req, res, next) => {
       .sort({ createdAt: -1 })
       .skip((currentPage - 1) * perPage)
       .limit(perPage);
-    res.status(200).json({ files: files, totalItems: totalItems });
+    res.status(200).json(
+      responseMessages.success(200, "Your List of Files", {
+        files: files,
+        totalItems: totalItems,
+      })
+    );
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error registering user" });
+    res.status(500).json({ message: "Error getting files" });
     next(err);
   }
 };
@@ -38,7 +44,7 @@ exports.uploadMultipleFiles = async (req, res) => {
   try {
     const files = req.files;
     if (!files || files.length === 0) {
-      return res.status(400).json({ message: "No files uploaded" });
+      return res.status(400).json({ message: "No multiple files uploaded" });
     }
     const userId = req.userId;
 
@@ -59,8 +65,27 @@ exports.uploadMultipleFiles = async (req, res) => {
       await newFile.save();
 
       uploadedFiles.push(newFile._id);
+
+      // Check if the uploaded file is an image
+      if (file.mimetype.startsWith("image")) {
+        const inputFilePath = `uploads/image/${file.filename}`;
+        const outputFilePath = `uploads/resized/${file.filename}`;
+        const target = {
+          width: 200,
+          height: 200,
+          fit: sharp.fit.cover,
+          background: { r: 255, g: 255, b: 255, alpha: 0.5 },
+        };
+
+        await sharp(inputFilePath).resize(target).toFile(outputFilePath);
+        newFile.resizedFilePath = outputFilePath;
+        await newFile.save();
+      }
     }
     if (uploadedFiles) {
+      user.files = user.files.concat(uploadedFiles);
+      await user.save();
+
       const mailOptions = MultipleMailOptions(uploadedFiles, user);
       transporter.sendMail(mailOptions, async (error, info) => {
         if (error) {
@@ -70,34 +95,38 @@ exports.uploadMultipleFiles = async (req, res) => {
         }
 
         res.json({
-          message: "Multiple File stored successfully",
+          message: "Multiple Files stored successfully",
           user: user.email,
-          fileLinks: uploadedFiles.map((file) => {
-            return `${req.protocol}://${req.get("host")}/files/${file}`;
+          fileLinks: uploadedFiles.map((fileId) => {
+            return `${process.env.BASE_URL}/files/${fileId}`;
           }),
           mailOptions,
         });
       });
     } else {
-      res.status(400).json({ message: "No files uploaded" });
+      res.status(400).json(responseMessages.error(400, "No files uploaded"));
     }
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error registering user" });
+    res.status(500).json(responseMessages.error(500, "Error uploading Files"));
   }
 };
 
 exports.uploadFile = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
+      return res
+        .status(400)
+        .json(responseMessages.error(400, "No file uploaded"));
     }
     const userId = req.userId;
 
     const user = await User.findById(userId);
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res
+        .status(404)
+        .json(responseMessages.error(404, "User not found"));
     }
 
     const newFile = new File({
@@ -134,16 +163,15 @@ exports.uploadFile = async (req, res) => {
       }
     });
 
-    return res.status(200).json({
-      message: "File stored and resized successfully",
-      user: user.email,
-      fileLink: `${req.protocol}://${req.get("host")}/files/${
-        req.file.filename
-      }`,
-    });
-  }catch (error) {
+    return res.status(200).json(
+      responseMessages.success(200, "File stored and resized successfully", {
+        user: user.email,
+        fileLink: `${process.env.BASE_URL}/files/${req.file.filename}`,
+      })
+    );
+  } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error registering user" });
+    res.status(500).json(responseMessages.error(500, "Error Uploading File"));
   }
 };
 
@@ -153,16 +181,22 @@ exports.getFile = async (req, res, next) => {
   const file = await File.findById(fileId);
   try {
     if (!file) {
-      return res.status(404).json({ message: "file not found" });
+      return res
+        .status(404)
+        .json(responseMessages.error(404, "file not found"));
     }
-    res.status(200).json({
-      file: file,
-      filename: file.filename,
-      uploader: user.email,
-    });
+    res.status(200).json(
+      responseMessages.success(200, "Your Requested File", {
+        file: file,
+        filename: file.filename,
+        uploader: user.email,
+      })
+    );
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error registering user" });
+    res
+      .status(500)
+      .json(responseMessages.error(500, "Error getting requested files"));
     next(error);
   }
 };
@@ -173,7 +207,9 @@ exports.updateFile = async (req, res) => {
     const existingFile = await File.findById(fileId);
 
     if (!existingFile) {
-      return res.status(404).json({ error: "File not found" });
+      return res
+        .status(404)
+        .json(responseMessages.error(404, "File not found"));
     }
 
     if (req.file) {
@@ -198,27 +234,34 @@ exports.updateFile = async (req, res) => {
       await existingFile.save();
     }
 
-    return res
-      .status(200)
-      .json({ message: "File updated successfully", file: existingFile });
+    return res.status(200).json(
+      responseMessages.success(200, "File updated successfully", {
+        file: existingFile,
+      })
+    );
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error registering user" });
+    res
+      .status(500)
+      .json(responseMessages.error(500, "Error getting requested files"));
   }
 };
-
 
 exports.getFileKey = async (req, res) => {
   try {
     let result = await File.find({
       $or: [{ filename: { $regex: req.params.key } }],
     });
-    return res
-      .status(200)
-      .json({ message: "File Found successfully", file: result });
+    return res.status(200).json(
+      responseMessages.success(200, "File Found successfully", {
+        file: result,
+      })
+    );
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error registering user" });
+    res
+      .status(500)
+      .json(responseMessages.error(500, "Error getting requested files"));
   }
 };
 
@@ -228,12 +271,19 @@ exports.deleteFIle = async (req, res) => {
     const fileToDelete = await File.findById(fileId);
 
     if (!fileToDelete) {
-      return res.status(404).json({ message: "File not found" });
+      return res
+        .status(404)
+        .json(responseMessages.error(404, "File not found"));
     }
     if (fileToDelete.uploader.toString() !== req.userId) {
       return res
         .status(403)
-        .json({ message: "You are not authorized to delete this file" });
+        .json(
+          responseMessages.error(
+            403,
+            "You are not authorized to delete this file"
+          )
+        );
     }
 
     const filePath = fileToDelete.filePath;
@@ -246,10 +296,14 @@ exports.deleteFIle = async (req, res) => {
 
     await File.findByIdAndDelete(fileId);
 
-    return res.status(200).json({ message: "File deleted successfully" });
-  }catch (error) {
+    return res
+      .status(200)
+      .json(responseMessages.success(200, "File deleted successfully"));
+  } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error registering user" });
+    res
+      .status(500)
+      .json(responseMessages.error(500, "Error getting requested files"));
   }
 };
 

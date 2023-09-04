@@ -1,6 +1,6 @@
 const nodemailer = require("nodemailer");
 
-// require("dotenv").config();
+require("dotenv").config();
 const path = require("path");
 const user = require("../models/user");
 
@@ -37,15 +37,24 @@ exports.singleMailOptions = (file, user) => {
   };
 };
 
-exports.MultipleMailOptions = (files, user) => {
+exports.MultipleMailOptions = (uploadedFiles, user) => {
+  const fileLinks = uploadedFiles.map((file) => {
+    const link = `${process.env.BASE_URL}/files/${file}`;
+    return { name: file, link };
+  });
+  const fileLinksHTML = fileLinks
+    .map((link) => {
+      return `<li><a href="${link.link}">${link.name}</a></li>`;
+    })
+    .join("");
   return {
     from: process.env.EMAIL,
     to: user.email,
     subject: "Multiple Files Uploaded",
     html: `<p>Hi ${user.email},</p>
     <p>Your multiple files have been uploaded successfully.</p>
-    <p><a href="${files}">Download your file</a></p>
-    <ul><li><a href="${files}">List of Files</a></li></ul>
+    <p><a href="#">Download your file</a></p>
+    <ul>${fileLinksHTML}</ul>
         `,
     // attachments: filenames.map((filename) => ({
     //   path: path.join(__dirname, "..", filename.path), //this is important don't change

@@ -49,5 +49,4 @@ router.get(
   fileController.downloadFile
 );
 
-
 module.exports = router;
