@@ -16,8 +16,3 @@ exports.verifyToken = (token) => {
   }
 };
 
-exports.generateDownloadToken = (file, userId) => {
-  const tokenData = `${file._id}:${userId}:${Date.now()}`;
-  const token = crypto.createHash("sha256").update(tokenData).digest("hex");
-  return token;
-};

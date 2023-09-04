@@ -1,32 +1,21 @@
-require("dotenv").config()
-const bcrypt = require("bcryptjs")
+require("dotenv").config();
+const bcrypt = require("bcryptjs");
 const jwtUtils = require("../utils/jwtUtils");
 const User = require("../models/user");
 const VerificationToken = require("../models/verifictionToken");
-const responseMessages  = require("../Responses/responseMessages")
+const responseMessages = require("../Responses/responseMessages");
 const {
   transporter,
   successfulRegister,
 } = require("../utils/nodemailerConfig");
 
-
 require("dotenv").config();
 const path = require("path");
 
-const { validationResult } = require("express-validator");
-
 exports.registerUser = async (req, res) => {
-  const {  name, gender,email, password } = req.body;
-  const errors = validationResult(req);
-
-  if (!errors.isEmpty()) {
-    return res.status(400).json(responseMessages.error(400, 'Validation error', errors.array().map((error) => error.msg)));
-  }
+  const { name, gender, email, password } = req.body;
   try {
     const existingUser = await User.findOne({ email: email });
-    if (existingUser) {
-      return res.status(400).json(responseMessages.error(400, "Email already exists"));
-    }
 
     // Hash the password and create a new user
     const hashedPassword = await bcrypt.hash(password, 12);
@@ -35,7 +24,7 @@ exports.registerUser = async (req, res) => {
       gender,
       email,
       password: hashedPassword,
-      active: false
+      active: false,
     });
 
     const token = jwtUtils.generateToken();
@@ -45,7 +34,6 @@ exports.registerUser = async (req, res) => {
     });
     await verificationToken.save();
 
-    
     const verificationLink = `${process.env.BASE_URL}/users/verify/${user._id}/${token}`;
     const mailOptions = successfulRegister(user, verificationLink);
 
@@ -59,27 +47,23 @@ exports.registerUser = async (req, res) => {
 
     // Save the user to the database and return a success message
     await user.save();
-    res.status(201).json(
-    responseMessages.success(201, 'User registered successfully. Please check your email for verification link.', { verificationLink, token }));
+    res
+      .status(201)
+      .json(
+        responseMessages.success(
+          201,
+          "User registered successfully. Please check your email for verification link.",
+          { verificationLink, token }
+        )
+      );
   } catch (error) {
     console.error(error);
-    res.status(500).json(responseMessages.error(500, 'Error registering user'));
+    res.status(500).json(responseMessages.error(500, "Error registering user"));
   }
 };
 
 exports.loginUser = async (req, res) => {
-  const email = req.body.email;
-  const password = req.body.password;
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json(
-      responseMessages.error(
-        400,
-        "Validation error",
-        errors.array().map((error) => error.msg)
-      )
-    );
-  }
+  const { email, password } = req.body;
   try {
     const user = await User.findOne({ email });
     if (!user) {
@@ -90,19 +74,19 @@ exports.loginUser = async (req, res) => {
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json(
-        responseMessages.error(401, "Password does not matches", {
-          isPasswordValid,
-        })
-      );
+      return res
+        .status(401)
+        .json(responseMessages.error(401, "Password does not matches"));
     }
 
-    const token = jwtUtils.generateToken(user._id);
-    res
-      .status(200)
-      .json(
-        responseMessages.success(200, "User logged in", { id: user._id, token })
-      );
+    const token = jwtUtils.generateToken(user._id, email);
+    res.status(200).json(
+      responseMessages.success(200, "Current User logged in", {
+        userId: user._id,
+        email: email,
+        token,
+      })
+    );
   } catch (error) {
     console.error(error);
     res.status(500).json(responseMessages.error(500, "Error registering user"));

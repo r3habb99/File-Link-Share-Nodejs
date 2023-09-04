@@ -40,11 +40,12 @@ exports.singleMailOptions = (file, user) => {
 exports.MultipleMailOptions = (uploadedFiles, user) => {
   const fileLinks = uploadedFiles.map((file) => {
     const link = `${process.env.BASE_URL}/files/${file}`;
-    return { name: file, link };
+    const filename = file;
+    return { filename, link };
   });
   const fileLinksHTML = fileLinks
     .map((link) => {
-      return `<li><a href="${link.link}">${link.name}</a></li>`;
+      return `<li><a href="${link.link}">${link.filename}</a></li>`;
     })
     .join("");
   return {
@@ -71,16 +72,5 @@ exports.successfulRegister = (user, verificationLink) => {
     html: `<p>Hi ${user.email},</p>
                 <p>Thank you for registering on our website. To complete your registration, please click on the link below to verify your email address.</p>
               <p><a href="${verificationLink}">Verify your email</a></p>`,
-  };
-};
-
-exports.sendDownloadLinkEmail = (toEmail, downloadLink) => {
-  return {
-    from: user.email,
-    to: toEmail,
-    subject: "Download your file",
-    html: `<p>Hi ${toEmail}</p>
-    <p>This is your file to download.</p>
-    <p><a href="${downloadLink}">Download</a></p>`,
   };
 };

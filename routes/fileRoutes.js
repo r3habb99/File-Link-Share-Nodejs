@@ -32,21 +32,9 @@ router.put(
   fileController.updateFile
 );
 
-// router.put(
-//   "/:fileId",
-//   auth.authenticateUser,
-//   multer(multerConfig).array("files", 5),
-//   fileController.updateMultipleFile
-// );
-
 router.get("/search/:key", fileController.getFileKey);
 
-router.delete("/:fileId", auth.authenticateUser, fileController.deleteFIle);
+router.delete("/:fileId", auth.authenticateUser, fileController.deleteFile);
 
-router.get(
-  "/download/:fileId",
-  auth.authenticateUser,
-  fileController.downloadFile
-);
 
 module.exports = router;

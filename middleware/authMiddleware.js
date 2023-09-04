@@ -2,14 +2,20 @@ const jwtUtils = require("../utils/jwtUtils");
 const responseMessages = require("../Responses/responseMessages");
 
 exports.authenticateUser = (req, res, next) => {
-  //console.log(req);
   const token = req.headers.authorization;
+  const passedId = req.headers.id;
+  // console.log(passedId);
   if (!token) {
     return res
       .status(401)
-      .json(responseMessages.error(401, "Unauthorized User "));
+      .json(responseMessages.error(401, "Authentication required "));
   }
   const decoded = jwtUtils.verifyToken(token);
+  // console.log(decoded);
+
+  if (passedId !== decoded.userId) {
+    return res.status(401).json(responseMessages.error(401, "Invalid token"));
+  }
   if (!decoded || decoded instanceof Error) {
     return res.status(401).json(responseMessages.error(401, "Invalid token"));
   }

@@ -12,21 +12,32 @@ const validate = (req, res, next) => {
     return next();
   }
   const errorArray = errors.array().map((error) => error.msg);
-  return res.status(400).json(responseMessages.error(400, 'Validation error', errorArray));
+  return res
+    .status(400)
+    .json(responseMessages.error(400, "Caught Validation error", errorArray));
 };
 router.post(
-  "/register", [
-    body('name').notEmpty().withMessage('Name is required'),
-    body('gender').isIn(['M', 'F']).withMessage('Gender must be M or F'),
-    body('email').notEmpty().isEmail().withMessage('Invalid email').normalizeEmail()
-    .custom(async (value, { req }) => {
-      const userDoc = await User.findOne({ email: value });
-      if (userDoc) {
-        return Promise.reject("Email already already exists");
-      }
-    }),
-    body('password').notEmpty().isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  ], validate,
+  "/register",
+  [
+    body("name").notEmpty().withMessage("Name is required"),
+    body("gender").isIn(["M", "F"]).withMessage("Gender must be M or F"),
+    body("email")
+      .notEmpty()
+      .isEmail()
+      .withMessage("Invalid email")
+      .normalizeEmail()
+      .custom(async (value, { req }) => {
+        const userDoc = await User.findOne({ email: value });
+        if (userDoc) {
+          return Promise.reject("Email already already exists in database");
+        }
+      }),
+    body("password")
+      .notEmpty()
+      .isLength({ min: 6 })
+      .withMessage("Password must be at least 6 characters"),
+  ],
+  validate,
   userController.registerUser
 );
 

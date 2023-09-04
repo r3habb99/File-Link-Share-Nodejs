@@ -35,7 +35,7 @@ exports.getAllFiles = async (req, res, next) => {
     );
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error getting files" });
+    res.status(500).json(responseMessages.error(500, "Error getting files"));
     next(err);
   }
 };
@@ -44,19 +44,23 @@ exports.uploadMultipleFiles = async (req, res) => {
   try {
     const files = req.files;
     if (!files || files.length === 0) {
-      return res.status(400).json({ message: "No multiple files uploaded" });
+      return res
+        .status(400)
+        .json(responseMessages.error(400, "No multiple files uploaded"));
     }
     const userId = req.userId;
 
     const user = await User.findById(userId);
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res
+        .status(404)
+        .json(responseMessages.error(404, "User not found"));
     }
 
     const uploadedFiles = [];
     for (const file of files) {
-      const filePath = path.join("uploads", file.filename);
+      const filePath = path.join("uploads/image", file.filename);
       const newFile = new File({
         filename: file.filename,
         filePath: filePath,
@@ -94,14 +98,15 @@ exports.uploadMultipleFiles = async (req, res) => {
           console.log("Email sent:", info.response);
         }
 
-        res.json({
-          message: "Multiple Files stored successfully",
-          user: user.email,
-          fileLinks: uploadedFiles.map((fileId) => {
-            return `${process.env.BASE_URL}/files/${fileId}`;
-          }),
-          mailOptions,
-        });
+        res.status(200).json(
+          responseMessages.success(200, "Multiple Files stored successfully", {
+            user: user.email,
+            fileLinks: uploadedFiles.map((fileId) => {
+              return `${process.env.BASE_URL}/files/${fileId}`;
+            }),
+            mailOptions,
+          })
+        );
       });
     } else {
       res.status(400).json(responseMessages.error(400, "No files uploaded"));
@@ -115,9 +120,11 @@ exports.uploadMultipleFiles = async (req, res) => {
 exports.uploadFile = async (req, res) => {
   try {
     if (!req.file) {
-      return res
-        .status(400)
-        .json(responseMessages.error(400, "No file uploaded"));
+      return res.status(400).json(
+        responseMessages.error(400, "No file uploaded", {
+          file: "Must select file ",
+        })
+      );
     }
     const userId = req.userId;
 
@@ -131,7 +138,7 @@ exports.uploadFile = async (req, res) => {
 
     const newFile = new File({
       filename: req.file.filename,
-      filePath: `uploads/${req.file.filename}`,
+      filePath: `uploads/image/${req.file.filename}`,
       uploader: userId,
     });
     await newFile.save();
@@ -265,7 +272,7 @@ exports.getFileKey = async (req, res) => {
   }
 };
 
-exports.deleteFIle = async (req, res) => {
+exports.deleteFile = async (req, res) => {
   const fileId = req.params.fileId;
   try {
     const fileToDelete = await File.findById(fileId);
@@ -286,65 +293,30 @@ exports.deleteFIle = async (req, res) => {
         );
     }
 
+    // Get the file path from the database
     const filePath = fileToDelete.filePath;
-    const fullPath = path.join(__dirname, filePath);
-    fs.unlink(fullPath, (err) => {
-      if (err) {
-        console.error("Error deleting file:", err);
-      }
-    });
 
+    // Get the user who uploaded the file
+    const user = await User.findById(fileToDelete.uploader);
+
+    const files = user.files.filter((file) => file.id !== fileId);
+    user.files = files;
+
+    // Update the user's file references in the database
+    await user.save();
+
+    // Delete the file from the database
     await File.findByIdAndDelete(fileId);
 
     return res
       .status(200)
-      .json(responseMessages.success(200, "File deleted successfully"));
+      .json(
+        responseMessages.success(200, "File deleted successfully", { filePath })
+      );
   } catch (error) {
     console.error(error);
     res
       .status(500)
       .json(responseMessages.error(500, "Error getting requested files"));
-  }
-};
-
-exports.downloadFile = async (req, res) => {
-  const fileId = req.params.fileId;
-  const file = await File.findById(fileId);
-
-  if (!file) {
-    return res.status(404).json({ message: "File not found" });
-  }
-
-  const filePath = file.filePath;
-  const fullPath = path.join(__dirname, filePath);
-
-  // Check if the file is public or private
-  if (file.publicAccess === true) {
-    res.download(fullPath);
-  } else {
-    const userId = req.userId;
-    if (userId === file.uploader) {
-      res.download(fullPath);
-    } else {
-      const token = jwtUtils.generateDownloadToken(file, userId);
-      const downloadLink = `${req.protocol}://${req.get(
-        "host"
-      )}/download/${token}`;
-      const mailOptions = sendDownloadLinkEmail(
-        "idivyansh22@gmail.com",
-        downloadLink
-      );
-      transporter.sendMail(mailOptions, async (error, info) => {
-        if (error) {
-          console.log("Error sending email:", error);
-        } else {
-          console.log("Email sent:", info.response);
-
-          res
-            .status(200)
-            .json({ message: "Email sent with download link", mailOptions });
-        }
-      });
-    }
   }
 };
